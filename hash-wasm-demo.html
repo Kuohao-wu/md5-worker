@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/hash-wasm"></script>
+<!-- defines the global `hashwasm` variable -->
+
+<input type="file" id="file-input">
+<div id="result"></div>
+  <script>
+    const chunkSize = 64 * 1024 * 1024;
+const fileReader = new FileReader();
+let hasher = null;
+
+function hashChunk(chunk) {
+  return new Promise((resolve, reject) => {
+    fileReader.onload = async(e) => {
+      const view = new Uint8Array(e.target.result);
+      hasher.update(view);
+      resolve();
+    };
+
+    fileReader.readAsArrayBuffer(chunk);
+  });
+}
+
+const readFile = async(file) => {
+  if (hasher) {
+    hasher.init();
+  } else {
+    hasher = await hashwasm.createMD5();
+  }
+
+  const chunkNumber = Math.floor(file.size / chunkSize);
+
+  for (let i = 0; i <= chunkNumber; i++) {
+    const chunk = file.slice(
+      chunkSize * i,
+      Math.min(chunkSize * (i + 1), file.size)
+    );
+    await hashChunk(chunk);
+  }
+
+  const hash = hasher.digest();
+  return Promise.resolve(hash);
+};
+
+const fileSelector = document.getElementById("file-input");
+const resultElement = document.getElementById("result");
+
+fileSelector.addEventListener("change", async(event) => {
+  const file = event.target.files[0];
+
+  resultElement.innerHTML = "Loading...";
+  const start = Date.now();
+  const hash = await readFile(file);
+  const end = Date.now();
+  const duration = end - start;
+  const fileSizeMB = file.size / 1024 / 1024;
+  const throughput = fileSizeMB / (duration / 1000);
+  resultElement.innerHTML = `
+    Hash: ${hash}<br>
+    Duration: ${duration} ms<br>
+    Throughput: ${throughput.toFixed(2)} MB/s
+  `;
+});
+  </script>
+</body>
+</html>
