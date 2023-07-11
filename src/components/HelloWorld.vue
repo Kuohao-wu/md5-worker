@@ -14,10 +14,13 @@ const fileMD5 = ref('')
 const { readFileProcess, fileSize, getMD5, usedTime, throughput } = useMD5()
 
 const changeHandler = async (evt) => {
-  const file = evt.target.files[0];
-  const res = await getMD5(file)
-  fileMD5.value = res
-  evt.target.value = ''
+  for (let index = 0; index < evt.target.files.length; index++) {
+    const file = evt.target.files[index];
+    getMD5(file).then((res) => {
+      fileMD5.value = res
+    })
+  }
+  // evt.target.value = ''
 }
 
 </script>
@@ -25,7 +28,7 @@ const changeHandler = async (evt) => {
 <template>
   <h1>{{ msg }}</h1>
   <div class="content">
-    <input type="file" @change="changeHandler">
+    <input type="file" @change="changeHandler" multiple>
     <div>文件读取进度: {{ readFileProcess }}</div>
     <div>文件MD5: {{ fileMD5 }}</div>
     <div>耗时: {{ usedTime }}ms</div>
